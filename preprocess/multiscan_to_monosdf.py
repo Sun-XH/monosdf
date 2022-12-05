@@ -15,20 +15,20 @@ import matplotlib.pyplot as plt
 
 image_size = 384
 trans_totensor = transforms.Compose([
-    transforms.CenterCrop(image_size*2),
+    transforms.CenterCrop(image_size * 2),
     transforms.Resize(image_size, interpolation=PIL.Image.BILINEAR),
 ])
 depth_trans_totensor = transforms.Compose([
     transforms.Resize([968, 1296], interpolation=PIL.Image.NEAREST),
-    transforms.CenterCrop(image_size*2),
+    transforms.CenterCrop(image_size * 2),
     transforms.Resize(image_size, interpolation=PIL.Image.NEAREST),
 ])
 
-
-out_path_prefix = '../data/scannet_val_monosdf'
-data_root = '/home/sunxh/Xiaohao/monosdf/data/scannet_val'
-scenes = ['scene0426_00', 'scene0549_00', 'scene0591_00', 'scene0139_00']
-out_names = ['scan1', 'scan2', 'scan3', 'scan4']
+out_path_prefix = '../data/multiscan_monosdf'
+data_root = '/home/sunxh/Xiaohao/monosdf/data/multiscan'
+scenes = ['scene_00028_00', 'scene_00028_01', 'scene_00064_00', 'scene_00064_01', 'scene_00084_00', 'scene_00084_01',
+          'scene_00087_00', 'scene_00087_01', 'scene_00021_00', 'scene_00021_01']
+out_names = ['scan1', 'scan2', 'scan3', 'scan4', 'scan5', 'scan6', 'scan7', 'scan8', 'scan9', 'scan10']
 
 for scene, out_name in zip(scenes, out_names):
     out_path = os.path.join(out_path_prefix, out_name)
@@ -40,16 +40,16 @@ for scene, out_name in zip(scenes, out_names):
         out_folder = os.path.join(out_path, folder)
         os.makedirs(out_folder, exist_ok=True)
 
-    # load color 
+    # load color
     color_path = os.path.join(data_root, scene, 'color')
-    color_paths = sorted(glob.glob(os.path.join(color_path, '*.jpg')), 
-        key=lambda x: int(os.path.basename(x)[:-4]))
+    color_paths = sorted(glob.glob(os.path.join(color_path, '*.png')),
+                         key=lambda x: int(os.path.basename(x)[:-4]))
     print(color_paths)
-    
+
     # load depth
     depth_path = os.path.join(data_root, scene, 'depth')
-    depth_paths = sorted(glob.glob(os.path.join(depth_path, '*.png')), 
-        key=lambda x: int(os.path.basename(x)[:-4]))
+    depth_paths = sorted(glob.glob(os.path.join(depth_path, '*.png')),
+                         key=lambda x: int(os.path.basename(x)[:-4]))
     print(depth_paths)
 
     # load intrinsic
@@ -71,7 +71,7 @@ for scene, out_name in zip(scenes, out_names):
     valid_poses = np.isfinite(poses).all(axis=2).all(axis=1)
     min_vertices = poses[:, :3, 3][valid_poses].min(axis=0)
     max_vertices = poses[:, :3, 3][valid_poses].max(axis=0)
- 
+
     center = (min_vertices + max_vertices) / 2.
     scale = 2. / (np.max(max_vertices - min_vertices) + 3.)
     print(center, scale)
@@ -79,7 +79,7 @@ for scene, out_name in zip(scenes, out_names):
     # we should normalized to unit cube
     scale_mat = np.eye(4).astype(np.float32)
     scale_mat[:3, 3] = -center
-    scale_mat[:3 ] *= scale 
+    scale_mat[:3] *= scale
     scale_mat = np.linalg.inv(scale_mat)
 
     # copy image
@@ -96,16 +96,16 @@ for scene, out_name in zip(scenes, out_names):
     # resize from 384*2 to 384
     resize_factor = 0.5
     camera_intrinsic[:2, :] *= resize_factor
-    
+
     K = camera_intrinsic
     print(K)
-    
+
     for idx, (valid, pose, depth_path, image_path) in enumerate(zip(valid_poses, poses, depth_paths, color_paths)):
         print(idx, valid)
         if idx % 10 != 0: continue
-        if not valid : continue
-        
-        target_image = os.path.join(out_path, "image/%06d.png"%(out_index))
+        if not valid: continue
+
+        target_image = os.path.join(out_path, "image/%06d.png" % (out_index))
         print(target_image)
         img = Image.open(image_path)
         img_tensor = trans_totensor(img)
@@ -113,29 +113,28 @@ for scene, out_name in zip(scenes, out_names):
 
         mask = (np.ones((image_size, image_size, 3)) * 255.).astype(np.uint8)
 
-        target_image = os.path.join(out_path, "mask/%03d.png"%(out_index))
+        target_image = os.path.join(out_path, "mask/%03d.png" % (out_index))
         cv2.imwrite(target_image, mask)
 
         # load depth
-        target_image = os.path.join(out_path, "depth/%06d.png"%(out_index))
+        target_image = os.path.join(out_path, "depth/%06d.png" % (out_index))
         depth = cv2.imread(depth_path, -1).astype(np.float32) / 1000.
-        #import pdb; pdb.set_trace()
+        # import pdb; pdb.set_trace()
         depth_PIL = Image.fromarray(depth)
         new_depth = depth_trans_totensor(depth_PIL)
         new_depth = np.asarray(new_depth)
         plt.imsave(target_image, new_depth, cmap='viridis')
         np.save(target_image.replace(".png", ".npy"), new_depth)
-        
-        
+
         # save pose
         pcds.append(pose[:3, 3])
         pose = K @ np.linalg.inv(pose)
-        
-        #cameras["scale_mat_%d"%(out_index)] = np.eye(4).astype(np.float32)
-        cameras["scale_mat_%d"%(out_index)] = scale_mat
-        cameras["world_mat_%d"%(out_index)] = pose
+
+        # cameras["scale_mat_%d"%(out_index)] = np.eye(4).astype(np.float32)
+        cameras["scale_mat_%d" % (out_index)] = scale_mat
+        cameras["world_mat_%d" % (out_index)] = pose
 
         out_index += 1
 
-    #np.savez(os.path.join(out_path, "cameras_sphere.npz"), **cameras)
+    # np.savez(os.path.join(out_path, "cameras_sphere.npz"), **cameras)
     np.savez(os.path.join(out_path, "cameras.npz"), **cameras)

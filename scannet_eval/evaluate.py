@@ -116,7 +116,8 @@ def refuse(mesh, poses, K):
         sdf_trunc=3 * 0.01,
         color_type=o3d.pipelines.integration.TSDFVolumeColorType.RGB8
     )
-    
+    import pdb
+    pdb.set_trace()
     for pose in tqdm(poses):
         intrinsic = np.eye(4)
         intrinsic[:3, :3] = K
@@ -133,6 +134,8 @@ def refuse(mesh, poses, K):
         intrinsic = o3d.camera.PinholeCameraIntrinsic(width=W, height=H, fx=fx,  fy=fy, cx=cx, cy=cy)
         extrinsic = np.linalg.inv(pose)
         volume.integrate(rgbd, intrinsic, extrinsic)
+        import pdb
+        pdb.set_trace() 
     
     return volume.extract_triangle_mesh()
 
@@ -143,24 +146,28 @@ out_dir = "evaluation/scannet_mlp"
 Path(out_dir).mkdir(parents=True, exist_ok=True)
 
 
-scenes = ["scene0050_00", "scene0084_00", "scene0580_00", "scene0616_00"]
+# scenes = ["scene0050_00", "scene0084_00", "scene0580_00", "scene0616_00"]
+scenes = ["scene0050_00"]
 all_results = []
 for idx, scan in enumerate(scenes):
+    # idx = idx + 1
+    # cur_exp = f"{exp_name}_{idx}"
+    # cur_root = os.path.join(root_dir, cur_exp)
+    # # use first timestamps
+    # dirs = sorted(os.listdir(cur_root))
+    # cur_root = os.path.join(cur_root, dirs[0])
+    # files = list(filter(os.path.isfile, glob.glob(os.path.join(cur_root, "plots/*.ply"))))
     idx = idx + 1
-    cur_exp = f"{exp_name}_{idx}"
-    cur_root = os.path.join(root_dir, cur_exp)
-    # use first timestamps
-    dirs = sorted(os.listdir(cur_root))
-    cur_root = os.path.join(cur_root, dirs[0])
-    files = list(filter(os.path.isfile, glob.glob(os.path.join(cur_root, "plots/*.ply"))))
+
+    ply_file = "/home/sunxh/Xiaohao/monosdf/pretrained_results/scene0050_00.ply"
+    # ply_file = "/home/sunxh/Xiaohao/monosdf/pretrained_results/scan1.ply"
     
     # evalute the latest mesh
-    files.sort(key=lambda x:os.path.getmtime(x))
-    ply_file = files[-1]
-    print(ply_file)
+    # files.sort(key=lambda x:os.path.getmtime(x))
+    # ply_file = files[-1]
+    # print(ply_file)
     
     mesh = trimesh.load(ply_file)
-    
     # transform to world coordinate
     cam_file = f"../data/scannet/scan{idx}/cameras.npz"
     scale_mat = np.load(cam_file)['scale_mat_0']
@@ -178,7 +185,6 @@ for idx, scan in enumerate(scenes):
     out_mesh_path = os.path.join(out_dir, f"{exp_name}_scan_{idx}_{scan}.ply")
     o3d.io.write_triangle_mesh(out_mesh_path, mesh)
     mesh = trimesh.load(out_mesh_path)
-    
     
     #gt_mesh = os.path.join("../data/scannet/GTmesh", f"{scan}_vh_clean_2.ply")
     gt_mesh = os.path.join("../data/scannet/GTmesh_lowres", f"{scan[5:]}.obj")
