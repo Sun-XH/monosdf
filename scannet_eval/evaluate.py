@@ -116,8 +116,8 @@ def refuse(mesh, poses, K):
         sdf_trunc=3 * 0.01,
         color_type=o3d.pipelines.integration.TSDFVolumeColorType.RGB8
     )
-    import pdb
-    pdb.set_trace()
+    # import pdb
+    # pdb.set_trace()
     for pose in tqdm(poses):
         intrinsic = np.eye(4)
         intrinsic[:3, :3] = K
@@ -134,8 +134,8 @@ def refuse(mesh, poses, K):
         intrinsic = o3d.camera.PinholeCameraIntrinsic(width=W, height=H, fx=fx,  fy=fy, cx=cx, cy=cy)
         extrinsic = np.linalg.inv(pose)
         volume.integrate(rgbd, intrinsic, extrinsic)
-        import pdb
-        pdb.set_trace() 
+        # import pdb
+        # pdb.set_trace()
     
     return volume.extract_triangle_mesh()
 
@@ -146,8 +146,8 @@ out_dir = "evaluation/scannet_mlp"
 Path(out_dir).mkdir(parents=True, exist_ok=True)
 
 
-# scenes = ["scene0050_00", "scene0084_00", "scene0580_00", "scene0616_00"]
-scenes = ["scene0050_00"]
+scenes = ["scene0050_00", "scene0084_00", "scene0580_00", "scene0616_00"]
+# scenes = ["scene0050_00"]
 all_results = []
 for idx, scan in enumerate(scenes):
     # idx = idx + 1
@@ -159,8 +159,8 @@ for idx, scan in enumerate(scenes):
     # files = list(filter(os.path.isfile, glob.glob(os.path.join(cur_root, "plots/*.ply"))))
     idx = idx + 1
 
-    ply_file = "/home/sunxh/Xiaohao/monosdf/pretrained_results/scene0050_00.ply"
-    # ply_file = "/home/sunxh/Xiaohao/monosdf/pretrained_results/scan1.ply"
+    # ply_file = "/home/sunxh/Xiaohao/monosdf/pretrained_results/scene0050_00.ply"
+    ply_file = f"/home/sunxh/Xiaohao/monosdf/meshes/scannet_mlp/scan{idx}.ply"
     
     # evalute the latest mesh
     # files.sort(key=lambda x:os.path.getmtime(x))

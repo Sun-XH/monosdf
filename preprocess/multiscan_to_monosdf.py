@@ -53,8 +53,13 @@ for scene, out_name in zip(scenes, out_names):
     print(depth_paths)
 
     # load intrinsic
-    intrinsic_path = os.path.join(data_root, scene, 'intrinsic', 'intrinsic_color.txt')
+    intrinsic_path = os.path.join(data_root, scene, 'intrinsic', 'intrinsic_depth.txt')
     camera_intrinsic = np.loadtxt(intrinsic_path)
+    scale = 640 / 1296
+    camera_intrinsic[0, :] *= 640.0 / 1296
+    camera_intrinsic[1, :] *= 480 / 968
+    camera_intrinsic[0, 2] = 1296.0 / 2
+    camera_intrinsic[1, 2] = 968.0 / 2
     print(camera_intrinsic)
 
     # load pose
@@ -108,6 +113,7 @@ for scene, out_name in zip(scenes, out_names):
         target_image = os.path.join(out_path, "image/%06d.png" % (out_index))
         print(target_image)
         img = Image.open(image_path)
+        img = img.resize((1296, 968))
         img_tensor = trans_totensor(img)
         img_tensor.save(target_image)
 
